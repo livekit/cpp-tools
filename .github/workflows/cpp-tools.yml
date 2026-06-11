@@ -1,0 +1,238 @@
+name: C++ Tools
+
+on:
+  workflow_call:
+    inputs:
+      clang_format:
+        type: boolean
+        default: true
+      clang_tidy:
+        type: boolean
+        default: true
+      doxygen:
+        type: boolean
+        default: false
+      checkout_submodules:
+        type: string
+        default: recursive
+      clang_format_version:
+        type: string
+        default: "22"
+      clang_format_paths:
+        type: string
+        default: "src include benchmarks"
+      clang_tidy_version:
+        type: string
+        default: "19"
+      clang_tidy_dependencies_command:
+        type: string
+        default: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build pkg-config \
+            llvm-dev libclang-dev clang \
+            libssl-dev wget ca-certificates gnupg
+      clang_tidy_install_rust:
+        type: boolean
+        default: false
+      clang_tidy_setup_command:
+        type: string
+        default: ""
+      clang_tidy_configure_command:
+        type: string
+        default: ""
+      clang_tidy_generate_command:
+        type: string
+        default: ""
+      clang_tidy_build_dir:
+        type: string
+        default: build-release
+      clang_tidy_file_regex:
+        type: string
+        default: '^(?!.*/(_deps|build-[^/]*|vcpkg_installed|docker|docs|data)/).*/src/(?!tests/).*\.(c|cpp|cc|cxx)$'
+      clang_tidy_header_filter:
+        type: string
+        default: ""
+      clang_tidy_exclude_header_filter:
+        type: string
+        default: ""
+      clang_tidy_require_generated_protobuf:
+        type: string
+        default: ""
+      doxygen_dependencies_command:
+        type: string
+        default: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+      doxygen_command:
+        type: string
+        default: ./scripts/generate-docs.sh
+permissions:
+  contents: read
+
+jobs:
+  clang-format:
+    name: clang-format
+    if: ${{ inputs.clang_format }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          submodules: ${{ inputs.checkout_submodules }}
+          fetch-depth: 1
+
+      - name: Install clang-format ${{ inputs.clang_format_version }}
+        env:
+          LLVM_VERSION: ${{ inputs.clang_format_version }}
+        run: |
+          set -eux
+          sudo install -m 0755 -d /etc/apt/keyrings
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo tee /etc/apt/keyrings/llvm.asc >/dev/null
+          sudo chmod a+r /etc/apt/keyrings/llvm.asc
+          codename=$(lsb_release -cs)
+          echo "deb [signed-by=/etc/apt/keyrings/llvm.asc] http://apt.llvm.org/${codename}/ llvm-toolchain-${codename}-${LLVM_VERSION} main" \
+            | sudo tee "/etc/apt/sources.list.d/llvm-${LLVM_VERSION}.list" >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y "clang-format-${LLVM_VERSION}"
+          sudo ln -sf "/usr/bin/clang-format-${LLVM_VERSION}" /usr/local/bin/clang-format
+          clang-format --version
+
+      - name: Run clang-format
+        env:
+          FORMAT_BLOB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CLANG_FORMAT_PATHS_INPUT: ${{ inputs.clang_format_paths }}
+        run: |
+          set -euo pipefail
+          args=()
+          for path in ${CLANG_FORMAT_PATHS_INPUT}; do
+            args+=(--path "${path}")
+          done
+          ./cpp-tools/scripts/clang-format.sh \
+            --repo-root "$GITHUB_WORKSPACE" \
+            "${args[@]}"
+
+  clang-tidy:
+    name: clang-tidy
+    if: ${{ inputs.clang_tidy }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          submodules: ${{ inputs.checkout_submodules }}
+          fetch-depth: 1
+
+      - name: Install dependencies
+        if: ${{ inputs.clang_tidy_dependencies_command != '' }}
+        env:
+          CLANG_TIDY_DEPENDENCIES_COMMAND: ${{ inputs.clang_tidy_dependencies_command }}
+        run: |
+          set -euo pipefail
+          eval "${CLANG_TIDY_DEPENDENCIES_COMMAND}"
+
+      - name: Install clang-tidy ${{ inputs.clang_tidy_version }}
+        env:
+          LLVM_VERSION: ${{ inputs.clang_tidy_version }}
+        run: |
+          set -eux
+          sudo install -m 0755 -d /etc/apt/keyrings
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo tee /etc/apt/keyrings/llvm.asc >/dev/null
+          sudo chmod a+r /etc/apt/keyrings/llvm.asc
+          codename=$(lsb_release -cs)
+          echo "deb [signed-by=/etc/apt/keyrings/llvm.asc] http://apt.llvm.org/${codename}/ llvm-toolchain-${codename}-${LLVM_VERSION} main" \
+            | sudo tee "/etc/apt/sources.list.d/llvm-${LLVM_VERSION}.list" >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y "clang-tidy-${LLVM_VERSION}" "clang-tools-${LLVM_VERSION}"
+          sudo ln -sf "/usr/bin/clang-tidy-${LLVM_VERSION}" /usr/local/bin/clang-tidy
+          sudo ln -sf "/usr/bin/run-clang-tidy-${LLVM_VERSION}" /usr/local/bin/run-clang-tidy
+          clang-tidy --version
+          run-clang-tidy --help | head -1 || true
+
+      - name: Install Rust
+        if: ${{ inputs.clang_tidy_install_rust }}
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+        with:
+          toolchain: stable
+
+      - name: Setup clang-tidy environment
+        if: ${{ inputs.clang_tidy_setup_command != '' }}
+        env:
+          CLANG_TIDY_SETUP_COMMAND: ${{ inputs.clang_tidy_setup_command }}
+        run: |
+          set -euo pipefail
+          eval "${CLANG_TIDY_SETUP_COMMAND}"
+
+      - name: Configure project
+        if: ${{ inputs.clang_tidy_configure_command != '' }}
+        env:
+          CLANG_TIDY_CONFIGURE_COMMAND: ${{ inputs.clang_tidy_configure_command }}
+        run: |
+          set -euo pipefail
+          eval "${CLANG_TIDY_CONFIGURE_COMMAND}"
+
+      - name: Generate clang-tidy prerequisites
+        if: ${{ inputs.clang_tidy_generate_command != '' }}
+        env:
+          CLANG_TIDY_GENERATE_COMMAND: ${{ inputs.clang_tidy_generate_command }}
+        run: |
+          set -euo pipefail
+          eval "${CLANG_TIDY_GENERATE_COMMAND}"
+
+      - name: Run clang-tidy
+        env:
+          TIDY_BLOB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CLANG_TIDY_BUILD_DIR: ${{ inputs.clang_tidy_build_dir }}
+          CLANG_TIDY_FILE_REGEX: ${{ inputs.clang_tidy_file_regex }}
+          CLANG_TIDY_HEADER_FILTER: ${{ inputs.clang_tidy_header_filter }}
+          CLANG_TIDY_EXCLUDE_HEADER_FILTER: ${{ inputs.clang_tidy_exclude_header_filter }}
+          CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF: ${{ inputs.clang_tidy_require_generated_protobuf }}
+        run: |
+          set -euo pipefail
+          args=(
+            --repo-root "$GITHUB_WORKSPACE"
+            --build-dir "${CLANG_TIDY_BUILD_DIR}"
+            --file-regex "${CLANG_TIDY_FILE_REGEX}"
+            --fail-on-warning
+          )
+          if [[ -n "${CLANG_TIDY_HEADER_FILTER}" ]]; then
+            args+=(--header-filter "${CLANG_TIDY_HEADER_FILTER}")
+          fi
+          if [[ -n "${CLANG_TIDY_EXCLUDE_HEADER_FILTER}" ]]; then
+            args+=(--exclude-header-filter "${CLANG_TIDY_EXCLUDE_HEADER_FILTER}")
+          fi
+          if [[ -n "${CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF}" ]]; then
+            args+=(--require-generated-protobuf "${CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF}")
+          fi
+          ./cpp-tools/scripts/clang-tidy.sh "${args[@]}"
+
+  doxygen:
+    name: doxygen
+    if: ${{ inputs.doxygen }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          submodules: ${{ inputs.checkout_submodules }}
+          fetch-depth: 1
+
+      - name: Install Doxygen dependencies
+        if: ${{ inputs.doxygen_dependencies_command != '' }}
+        env:
+          DOXYGEN_DEPENDENCIES_COMMAND: ${{ inputs.doxygen_dependencies_command }}
+        run: |
+          set -euo pipefail
+          eval "${DOXYGEN_DEPENDENCIES_COMMAND}"
+
+      - name: Run Doxygen
+        env:
+          DOXYGEN_COMMAND: ${{ inputs.doxygen_command }}
+        run: |
+          set -euo pipefail
+          eval "${DOXYGEN_COMMAND}"

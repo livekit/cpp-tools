@@ -56,3 +56,27 @@ Install the shared auto-format hook from a consuming repository:
 
 The hook formats staged C/C++ files and re-stages any files rewritten by
 `clang-format`.
+
+## GitHub Actions
+
+Consumer repositories can delegate C++ checks to the shared reusable workflow:
+
+```yaml
+jobs:
+  cpp-tools:
+    uses: livekit/cpp-tools/.github/workflows/cpp-tools.yml@main
+    with:
+      clang_format: true
+      clang_tidy: true
+      doxygen: false
+```
+
+Checks are configured with boolean inputs:
+
+- `clang_format` runs `clang-format`.
+- `clang_tidy` runs `clang-tidy`.
+- `doxygen` runs a configurable Doxygen command.
+
+Repository-specific commands and filters are supplied with string inputs such
+as `clang_tidy_configure_command`, `clang_tidy_generate_command`,
+`clang_tidy_file_regex`, and `clang_format_paths`.

@@ -8,6 +8,7 @@ repositories. It provides the shared source of truth for:
 - `clang-format` style (`configs/.clang-format`)
 - `clang-tidy` checks (`configs/.clang-tidy`)
 - local and CI wrapper scripts under `scripts/`
+- reusable GitHub Actions workflow under `.github/workflows/cpp-tools.yml`
 - documentation for the shared tooling under `docs/`
 
 Consumer repositories should expose root-level symlinks for `.clang-format` and
