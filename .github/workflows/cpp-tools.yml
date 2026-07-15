@@ -75,13 +75,17 @@ jobs:
     name: clang-format
     if: ${{ inputs.clang_format }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           submodules: ${{ inputs.checkout_submodules }}
           fetch-depth: 1
+
+      - name: Install shared configuration
+        run: ./cpp-tools/install.sh --repo-root "$GITHUB_WORKSPACE" --force
 
       - name: Install clang-format ${{ inputs.clang_format_version }}
         env:
@@ -118,13 +122,17 @@ jobs:
     name: clang-tidy
     if: ${{ inputs.clang_tidy }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           submodules: ${{ inputs.checkout_submodules }}
           fetch-depth: 1
+
+      - name: Install shared configuration
+        run: ./cpp-tools/install.sh --repo-root "$GITHUB_WORKSPACE" --force
 
       - name: Install dependencies
         if: ${{ inputs.clang_tidy_dependencies_command != '' }}
@@ -214,10 +222,11 @@ jobs:
     name: doxygen
     if: ${{ inputs.doxygen }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           submodules: ${{ inputs.checkout_submodules }}
           fetch-depth: 1

@@ -21,8 +21,7 @@ usage() {
 Usage: install-pre-commit.sh [--repo-root PATH]
 
 Install a git pre-commit hook that runs clang-format on staged C/C++ files.
-The generated hook prefers a consuming repo compatibility wrapper at
-./scripts/clang-format.sh and falls back to ./cpp-tools/clang-format.sh.
+The generated hook uses ./cpp-tools/clang-format.sh.
 EOF
 }
 
@@ -62,9 +61,7 @@ files=$(git diff --cached --name-only --diff-filter=ACMR \
   -- "*.c" "*.cc" "*.cpp" "*.cxx" "*.h" "*.hpp" "*.hxx")
 [ -z "${files}" ] && exit 0
 
-if [ -x "./scripts/clang-format.sh" ]; then
-  echo "${files}" | xargs ./scripts/clang-format.sh --fix
-elif [ -x "./cpp-tools/clang-format.sh" ]; then
+if [ -x "./cpp-tools/clang-format.sh" ]; then
   repo_root=$(git rev-parse --show-toplevel)
   echo "${files}" | xargs ./cpp-tools/clang-format.sh --repo-root "${repo_root}" --fix
 else
