@@ -234,7 +234,7 @@ write_step_summary() {
       echo
       echo "</details>"
       echo
-      echo "Run \`./cpp-tools/scripts/clang-format.sh --fix\` locally to apply formatting."
+      echo "Run \`./cpp-tools/clang-format.sh --fix\` locally to apply formatting."
     fi
   } >> "${summary_file}"
 
@@ -272,7 +272,7 @@ print_stdout_summary() {
       printf '    %s\n' "${f}"
     done < "${files_tsv}"
     echo
-    echo "  Run './cpp-tools/scripts/clang-format.sh --fix' to apply formatting."
+    echo "  Run './cpp-tools/clang-format.sh --fix' to apply formatting."
   fi
   echo "------------------------------------------------------------"
 

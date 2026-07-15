@@ -110,7 +110,7 @@ jobs:
           for path in ${CLANG_FORMAT_PATHS_INPUT}; do
             args+=(--path "${path}")
           done
-          ./cpp-tools/scripts/clang-format.sh \
+          ./cpp-tools/clang-format.sh \
             --repo-root "$GITHUB_WORKSPACE" \
             "${args[@]}"
 
@@ -208,7 +208,7 @@ jobs:
           if [[ -n "${CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF}" ]]; then
             args+=(--require-generated-protobuf "${CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF}")
           fi
-          ./cpp-tools/scripts/clang-tidy.sh "${args[@]}"
+          ./cpp-tools/clang-tidy.sh "${args[@]}"
 
   doxygen:
     name: doxygen
