@@ -20,8 +20,8 @@ usage() {
   cat <<'EOF'
 Usage: ./cpp-tools/install.sh [COMPONENT...] [OPTIONS]
 
-Install shared clang configuration symlinks and the pre-commit hook.
-With no components, installs everything.
+Install shared clang configuration symlinks and, when requested, the
+pre-commit hook. With no components, installs both configuration symlinks.
 
 Components:
   clang-format
@@ -125,7 +125,6 @@ done
 if ((components_specified == 0)); then
   install_clang_format=1
   install_clang_tidy=1
-  install_precommit=1
 fi
 
 if [[ -z "${repo_root}" ]]; then

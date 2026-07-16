@@ -8,16 +8,15 @@ repositories.
 
 ## Quick start
 
-From the consuming repository root, install the shared configuration symlinks
-and pre-commit hook:
+From the consuming repository root, install the shared configuration symlinks:
 
 ```bash
 ./cpp-tools/install.sh
 ```
 
 With no component arguments, the installer creates `.clang-format` and
-`.clang-tidy` links at the consumer root and installs the auto-formatting
-pre-commit hook. Pass component names to install only what is needed:
+`.clang-tidy` links at the consumer root. Pass component names to install only
+what is needed or to explicitly opt into the pre-commit hook:
 
 ```bash
 ./cpp-tools/install.sh clang-tidy clang-format precommit-hook
@@ -90,9 +89,10 @@ after `--`.
 
 ## Pre-commit hook
 
-`install.sh precommit-hook` installs `.git/hooks/pre-commit`. The hook formats
-staged C and C++ files and re-stages files rewritten by `clang-format`. Re-run
-the installer after cloning a fresh checkout.
+The hook is not installed by default. `install.sh precommit-hook` explicitly
+installs `.git/hooks/pre-commit`. The hook formats staged C and C++ files and
+re-stages files rewritten by `clang-format`. Re-run the installer after cloning
+a fresh checkout.
 
 ## GitHub Actions
 
