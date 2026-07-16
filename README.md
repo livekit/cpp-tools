@@ -46,12 +46,16 @@ The shared source of truth includes:
 
 - `clang-format` style (`.clang-format`)
 - `clang-tidy` checks (`.clang-tidy`)
+- shared C++ engineering guidance (`AGENTS.md`)
 - local and CI wrapper scripts at the repository root
 - reusable GitHub Actions workflow under `.github/workflows/cpp-tools.yml`
 
 Consumer repositories should expose root-level symlinks for `.clang-format` and
 `.clang-tidy` so editor integrations can find them, and should pass
 project-specific paths/build filters to the shared scripts.
+
+Their root `AGENTS.md` should reference `cpp-tools/AGENTS.md` as the shared C++
+baseline and add only repository-specific architecture and workflow guidance.
 
 ## clang-format
 
