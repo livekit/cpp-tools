@@ -139,10 +139,6 @@ else
     files+=("${path}")
   done < <(git ls-files -z -- \
     "${paths[@]}" \
-    ':!*.md' \
-    ':!*.txt' \
-    ':!*.cmake' \
-    ':!CMakeLists.txt' \
     | while IFS= read -r -d '' path; do
         case "${path}" in
           *.c|*.cc|*.cpp|*.cxx|*.h|*.hpp|*.hxx) printf '%s\0' "${path}" ;;
