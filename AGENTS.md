@@ -2,10 +2,8 @@
 
 ## Scope
 
-These rules apply to LiveKit C++ projects that consume `cpp-tools`. A consuming
-repository's `AGENTS.md` should define its architecture, supported platforms,
-build commands, and project-specific exceptions. More specific repository rules
-take precedence when they explicitly conflict with this baseline.
+These rules apply to LiveKit C++ projects that consume `cpp-tools`. If a consuming
+repository has an `AGENTS.md` with conflicting rules they should take priority.
 
 ## Safety and Determinism
 
@@ -27,7 +25,7 @@ take precedence when they explicitly conflict with this baseline.
 - Use return values for expected failures instead of exceptions:
   - `std::optional<T>` when absence is expected and needs no diagnostic.
   - `bool` for a simple success/failure result.
-  - A project `Result<T, E>` or equivalent when callers need a typed error.
+  - `Result<T, E>`, `expected` (C++23 or higher), or equivalent when callers need a typed error.
 - Callers must inspect status-bearing return values. Mark important results
   `[[nodiscard]]` where practical.
 - Do not throw through C, FFI, callback, destructor, real-time, or
@@ -54,6 +52,7 @@ take precedence when they explicitly conflict with this baseline.
 
 ## Types, Arithmetic, and Units
 
+- Prefer STL types over third-party dependencies when possible.
 - Prefer fixed-width integers from `<cstdint>` when width or signedness matters,
   including serialization, FFI, hardware, timestamps, IDs, and public APIs.
 - Use platform-sized primitive integers only when the value is intentionally
@@ -62,8 +61,8 @@ take precedence when they explicitly conflict with this baseline.
   before conversions and arithmetic that can overflow.
 - Represent durations and time points with `std::chrono`; use a monotonic clock
   for elapsed time, deadlines, and timeouts.
-- Make physical units explicit with strong or clearly named types. Do not pass
-  ambiguous raw numeric values across interfaces.
+- Make physical units explicit with strong or clearly named types, such as `_us`
+  for microseconds. Do not pass ambiguous raw numeric values across interfaces.
 
 ## Concurrency
 
