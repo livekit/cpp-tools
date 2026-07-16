@@ -93,6 +93,15 @@ take precedence when they explicitly conflict with this baseline.
 - Keep third-party implementation details out of public headers and ABI
   boundaries.
 
+## Project-Owned clangd Configuration
+
+- Each consuming project must provide its own `.clangd`; compilation database
+  locations and flags are project-specific and are not shared by `cpp-tools`.
+- Verify `.clangd` points clangd at the project's generated compilation database
+  before relying on IDE diagnostics.
+- clang-tidy does not read `.clangd`. Before running clang-tidy, generate a valid
+  `compile_commands.json` and pass its build directory to `clang-tidy.sh`.
+
 ## Verification
 
 - Adhere to the shared `.clang-format` and `.clang-tidy` configurations.
