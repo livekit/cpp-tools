@@ -9,9 +9,6 @@ on:
       clang_tidy:
         type: boolean
         default: true
-      doxygen:
-        type: boolean
-        default: false
       checkout_submodules:
         type: string
         default: recursive
@@ -59,14 +56,6 @@ on:
       clang_tidy_require_generated_protobuf:
         type: string
         default: ""
-      doxygen_dependencies_command:
-        type: string
-        default: |
-          sudo apt-get update
-          sudo apt-get install -y doxygen graphviz
-      doxygen_command:
-        type: string
-        default: ./scripts/generate-docs.sh
 permissions:
   contents: read
 
@@ -217,31 +206,3 @@ jobs:
             args+=(--require-generated-protobuf "${CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF}")
           fi
           ./cpp-tools/clang-tidy.sh "${args[@]}"
-
-  doxygen:
-    name: doxygen
-    if: ${{ inputs.doxygen }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          submodules: ${{ inputs.checkout_submodules }}
-          fetch-depth: 1
-
-      - name: Install Doxygen dependencies
-        if: ${{ inputs.doxygen_dependencies_command != '' }}
-        env:
-          DOXYGEN_DEPENDENCIES_COMMAND: ${{ inputs.doxygen_dependencies_command }}
-        run: |
-          set -euo pipefail
-          eval "${DOXYGEN_DEPENDENCIES_COMMAND}"
-
-      - name: Run Doxygen
-        env:
-          DOXYGEN_COMMAND: ${{ inputs.doxygen_command }}
-        run: |
-          set -euo pipefail
-          eval "${DOXYGEN_COMMAND}"

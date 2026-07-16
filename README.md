@@ -100,14 +100,9 @@ jobs:
     with:
       clang_format: true
       clang_tidy: true
-      doxygen: false
 ```
 
 The boolean inputs enable the corresponding jobs. Repository-specific commands
 and filters are supplied with string inputs such as
 `clang_tidy_configure_command`, `clang_tidy_generate_command`,
 `clang_tidy_file_regex`, and `clang_format_paths`.
-
-The Doxygen job installs Doxygen and Graphviz, then runs
-`./scripts/generate-docs.sh` by default. Repositories can override
-`doxygen_dependencies_command` and `doxygen_command`.
