@@ -44,6 +44,8 @@ take precedence when they explicitly conflict with this baseline.
   pointers.
 - Use `std::unique_ptr` for exclusive dynamic ownership and `std::shared_ptr`
   only when ownership is genuinely shared.
+- Avoid heap allocations as much as possible. If code is heap allocating in a loop
+  or a high-frequency path, second guess the design and consider alternatives.
 - Keep object lifetimes and teardown order deterministic. Destructors must not
   throw.
 - Avoid hidden copies of large buffers. Make copy and move behavior intentional,
