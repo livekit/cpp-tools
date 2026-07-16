@@ -18,9 +18,18 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: ./cpp-tools/install.sh [OPTIONS]
+Usage: ./cpp-tools/install.sh [COMPONENT...] [OPTIONS]
 
-Install root-level symlinks for the shared clang configuration files.
+Install shared clang configuration symlinks and the pre-commit hook.
+With no components, installs everything.
+
+Components:
+  clang-format
+        Install the root-level .clang-format symlink.
+  clang-tidy
+        Install the root-level .clang-tidy symlink.
+  precommit-hook
+        Install the auto-formatting Git pre-commit hook.
 
 Options:
   --repo-root PATH
@@ -33,12 +42,57 @@ Options:
 EOF
 }
 
+install_precommit_hook() {
+  local consumer_root="$1"
+  local hook_path="${consumer_root}/.git/hooks/pre-commit"
+
+  cat >"${hook_path}" <<'HOOK'
+#!/bin/sh
+# Auto-format staged C/C++ files using LiveKit C++ tooling.
+files=$(git diff --cached --name-only --diff-filter=ACMR \
+  -- "*.c" "*.cc" "*.cpp" "*.cxx" "*.h" "*.hpp" "*.hxx")
+[ -z "${files}" ] && exit 0
+
+if [ -x "./cpp-tools/clang-format.sh" ]; then
+  repo_root=$(git rev-parse --show-toplevel)
+  echo "${files}" | xargs ./cpp-tools/clang-format.sh --repo-root "${repo_root}" --fix
+else
+  echo "ERROR: no LiveKit clang-format wrapper found." >&2
+  exit 1
+fi
+
+echo "${files}" | xargs git add
+HOOK
+
+  chmod +x "${hook_path}"
+  echo "Installed pre-commit hook at ${hook_path}"
+}
+
 tools_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root=""
 force=0
+components_specified=0
+install_clang_format=0
+install_clang_tidy=0
+install_precommit=0
 
 while (($#)); do
   case "$1" in
+    clang-format)
+      components_specified=1
+      install_clang_format=1
+      shift
+      ;;
+    clang-tidy)
+      components_specified=1
+      install_clang_tidy=1
+      shift
+      ;;
+    precommit-hook)
+      components_specified=1
+      install_precommit=1
+      shift
+      ;;
     --repo-root)
       if (($# < 2)); then
         echo "ERROR: --repo-root requires a path." >&2
@@ -55,13 +109,24 @@ while (($#)); do
       usage
       exit 0
       ;;
-    *)
+    -*)
       echo "ERROR: unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+    *)
+      echo "ERROR: unknown component: $1" >&2
       usage >&2
       exit 2
       ;;
   esac
 done
+
+if ((components_specified == 0)); then
+  install_clang_format=1
+  install_clang_tidy=1
+  install_precommit=1
+fi
 
 if [[ -z "${repo_root}" ]]; then
   repo_root="$(git -C "${tools_root}" rev-parse --show-superproject-working-tree 2>/dev/null || true)"
@@ -94,7 +159,13 @@ case "${tools_root}" in
     ;;
 esac
 
-configs=(.clang-format .clang-tidy)
+configs=()
+if ((install_clang_format == 1)); then
+  configs+=(.clang-format)
+fi
+if ((install_clang_tidy == 1)); then
+  configs+=(.clang-tidy)
+fi
 
 # Validate every destination before changing any of them.
 for config in "${configs[@]}"; do
@@ -134,3 +205,7 @@ for config in "${configs[@]}"; do
   ln -s "${link_target}" "${destination}"
   echo "Installed: ${destination} -> ${link_target}"
 done
+
+if ((install_precommit == 1)); then
+  install_precommit_hook "${repo_root}"
+fi

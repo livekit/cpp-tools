@@ -74,7 +74,7 @@ jobs:
           fetch-depth: 1
 
       - name: Install shared configuration
-        run: ./cpp-tools/install.sh --repo-root "$GITHUB_WORKSPACE" --force
+        run: ./cpp-tools/install.sh clang-format --repo-root "$GITHUB_WORKSPACE" --force
 
       - name: Install clang-format ${{ inputs.clang_format_version }}
         env:
@@ -121,7 +121,7 @@ jobs:
           fetch-depth: 1
 
       - name: Install shared configuration
-        run: ./cpp-tools/install.sh --repo-root "$GITHUB_WORKSPACE" --force
+        run: ./cpp-tools/install.sh clang-tidy --repo-root "$GITHUB_WORKSPACE" --force
 
       - name: Install dependencies
         if: ${{ inputs.clang_tidy_dependencies_command != '' }}
