@@ -84,10 +84,6 @@ flags or their corresponding environment variables:
 
 Additional `run-clang-tidy` arguments can be passed after `--`.
 
-## Pre-commit hook
-
-The hook formats staged C++ files and re-stages files rewritten by `clang-format`.
-
 ## Tool wrappers
 
 Consuming repositories should provide thin project-owned entrypoints such as
@@ -114,6 +110,10 @@ exec "${repo_root}/cpp-tools/clang-format.sh" \
 Repository-owned CI workflows should invoke the same project entrypoints so
 local and CI file selection cannot drift. Repositories that do not use wrappers
 can call the shared scripts with explicit arguments.
+
+## Pre-commit hook
+
+The hook formats staged C++ files and re-stages files rewritten by `clang-format`.
 
 ## GitHub Actions
 
