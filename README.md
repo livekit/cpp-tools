@@ -53,7 +53,6 @@ The shared source of truth includes:
 - `clang-tidy` checks (`.clang-tidy`)
 - shared C++ engineering guidance (`AGENTS.md`)
 - local and CI wrapper scripts at the repository root
-- reusable GitHub Actions workflow under `.github/workflows/cpp-tools.yml`
 
 Consumer repositories should expose root-level symlinks for `.clang-format` and
 `.clang-tidy` so editor integrations can find them, and should pass
@@ -85,9 +84,9 @@ exec "${repo_root}/cpp-tools/clang-format.sh" \
   "$@"
 ```
 
-The shared workflow can invoke the same entrypoints through
-`clang_format_runner` and `clang_tidy_runner`. Direct script arguments and
-workflow inputs remain available for repositories that do not use wrappers.
+Repository-owned CI workflows should invoke the same project entrypoints so
+local and CI file selection cannot drift. Repositories that do not use wrappers
+can call the shared scripts with explicit arguments.
 
 ## clang-format
 
@@ -127,22 +126,22 @@ a fresh checkout.
 
 ## GitHub Actions
 
-Consumer repositories can delegate checks to the reusable workflow:
+The scripts automatically enable GitHub annotations and step summaries when
+`GITHUB_ACTIONS=true`. Consumer repositories own checkout, tool installation,
+and project-specific build preparation, then call their project wrappers:
 
 ```yaml
-jobs:
-  cpp-tools:
-    uses: livekit/cpp-tools/.github/workflows/cpp-tools.yml@main
-    with:
-      clang_format: true
-      clang_format_runner: scripts/clang-format.sh
-      clang_tidy: true
-      clang_tidy_fail_on_warning: true
-      clang_tidy_runner: scripts/clang-tidy.sh
+- name: Run clang-format
+  env:
+    FORMAT_BLOB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  run: ./scripts/clang-format.sh
+
+- name: Run clang-tidy
+  env:
+    TIDY_BLOB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  run: ./scripts/clang-tidy.sh --fail-on-warning
 ```
 
-The workflow documents each supported input alongside its default.
-Each enabled job requires either its consumer runner or its direct selection
-input (`clang_format_paths` or `clang_tidy_file_regex`). Other
-repository-specific setup is supplied with inputs such as
-`clang_tidy_configure_command` and `clang_tidy_generate_command`.
+`FORMAT_BLOB_SHA` and `TIDY_BLOB_SHA` make source links target the pull
+request's head commit. The scripts fall back to `GITHUB_SHA` when these values
+are not supplied.
