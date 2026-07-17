@@ -1,37 +1,33 @@
 # cpp-tools
 
-Standardized formatting, static-analysis, and documentation checks for LiveKit
-C++ projects.
+Standardized tools for LiveKit C++ projects. This repository provides:
 
-This repository is intended to be consumed as a git submodule by LiveKit C++
-repositories.
+- [clang-format](https://clang.llvm.org/docs/ClangFormat.html): Code styling consistency across projects
+- [clang-tidy](https://clang.llvm.org/extra/clang-tidy/): Static analysis and bug catching
+- Base [AGENTS.md](./AGENTS.md) with C++ best practices
+- Helper scripts and GitHub actions reporting support
+
+This repository is intended to be consumed as a git submodule.
 
 ## Quick start
 
-Add `cpp-tools` to the consuming repository:
+Add this repository as a submodule from the consuming repository root:
 
 ```bash
 git submodule add https://github.com/livekit/cpp-tools.git cpp-tools
 ```
 
-From the consuming repository root, install the shared configuration symlinks:
+Install the shared configuration symlinks:
 
 ```bash
 ./cpp-tools/install.sh  # Installs .clang-format and .clang-tidy symlinks to repo root
 ```
 
-Optionally pass `precommit-hook` to install a precommit hook that automatically runs `clang-format`
-before commits.
-
-> Note: Only one precommit hook is allowed in Git
+Optionally install a precommit hook that automatically runs `clang-format` before commits:
 
 ```bash
 ./cpp-tools/install.sh precommit-hook   # Installs precommit hook
 ```
-
-The installer refuses to replace existing configuration files unless `--force`
-is passed. Use `--repo-root PATH` when the consumer root cannot be detected
-automatically.
 
 Run the tools from the repository root:
 
@@ -45,23 +41,16 @@ Run the tools from the repository root:
 ./cpp-tools/clang-tidy.sh --file-regex '.*\.(c|cpp|cc|cxx)$' --fail-on-warning
 ```
 
-## What this repository provides
+Update existing `AGENTS.md` file to reference this one:
 
-The shared source of truth includes:
+```markdown
+## Shared C++ baseline
+Follow `cpp-tools/AGENTS.md` for shared LiveKit C++ engineering guidance.
+Instructions in this file are project-specific and take precedence if they
+conflict with the shared baseline.
+```
 
-- `clang-format` style (`.clang-format`)
-- `clang-tidy` checks (`.clang-tidy`)
-- shared C++ engineering guidance (`AGENTS.md`)
-- local and CI wrapper scripts at the repository root
-
-Consumer repositories should expose root-level symlinks for `.clang-format` and
-`.clang-tidy` so editor integrations can find them, and should pass
-project-specific paths/build filters to the shared scripts.
-
-Their root `AGENTS.md` should reference `cpp-tools/AGENTS.md` as the shared C++
-baseline and add only repository-specific architecture and workflow guidance.
-
-## Consumer wrappers
+## Tool wrappers
 
 Consumer repositories should provide thin project-owned entrypoints such as
 `scripts/clang-format.sh` and `scripts/clang-tidy.sh`. The wrappers encode the
