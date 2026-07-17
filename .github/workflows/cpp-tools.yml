@@ -61,9 +61,9 @@ on:
         type: string
         default: build-release
       clang_tidy_file_regex:
-        description: Regular expression selecting source files for run-clang-tidy.
+        description: Regular expression selecting source files for run-clang-tidy; required when clang_tidy is enabled.
         type: string
-        required: true
+        default: ""
       clang_tidy_header_filter:
         description: Optional clang-tidy header filter regular expression.
         type: string
@@ -134,6 +134,15 @@ jobs:
     timeout-minutes: 45
 
     steps:
+      - name: Validate clang-tidy inputs
+        env:
+          CLANG_TIDY_FILE_REGEX: ${{ inputs.clang_tidy_file_regex }}
+        run: |
+          if [[ -z "${CLANG_TIDY_FILE_REGEX}" ]]; then
+            echo "::error::clang_tidy_file_regex is required when clang_tidy is enabled."
+            exit 2
+          fi
+
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:

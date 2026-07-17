@@ -119,7 +119,8 @@ jobs:
 ```
 
 The workflow documents each supported input alongside its default.
-`clang_tidy_file_regex` is required because source layouts and exclusions are
-consumer-specific. Other repository-specific commands and filters are supplied
+`clang_tidy_file_regex` is required when `clang_tidy` is enabled because source
+layouts and exclusions are consumer-specific. Format-only consumers do not
+need to set it. Other repository-specific commands and filters are supplied
 with inputs such as `clang_tidy_configure_command`,
 `clang_tidy_generate_command`, and `clang_format_paths`.
