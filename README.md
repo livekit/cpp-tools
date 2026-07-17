@@ -8,27 +8,32 @@ repositories.
 
 ## Quick start
 
+Add `cpp-tools` to the consuming repository:
+
+```bash
+git submodule add https://github.com/livekit/cpp-tools.git cpp-tools
+```
+
 From the consuming repository root, install the shared configuration symlinks:
 
 ```bash
-./cpp-tools/install.sh
+./cpp-tools/install.sh  # Installs .clang-format and .clang-tidy symlinks to repo root
 ```
 
-With no component arguments, the installer creates `.clang-format` and
-`.clang-tidy` links at the consumer root. Pass component names to install only
-what is needed or to explicitly opt into the pre-commit hook:
+Optionally pass `precommit-hook` to install a precommit hook that automatically runs `clang-format`
+before commits.
+
+> Note: Only one precommit hook is allowed in Git
 
 ```bash
-./cpp-tools/install.sh clang-tidy clang-format precommit-hook
-./cpp-tools/install.sh clang-tidy
-./cpp-tools/install.sh precommit-hook
+./cpp-tools/install.sh precommit-hook   # Installs precommit hook
 ```
 
 The installer refuses to replace existing configuration files unless `--force`
 is passed. Use `--repo-root PATH` when the consumer root cannot be detected
 automatically.
 
-Run the tools from the same directory:
+Run the tools from the repository root:
 
 ```bash
 # Check formatting or rewrite files in place.
@@ -109,9 +114,12 @@ jobs:
     with:
       clang_format: true
       clang_tidy: true
+      clang_tidy_fail_on_warning: true
+      clang_tidy_file_regex: '.*\.(c|cpp|cc|cxx)$'
 ```
 
-The boolean inputs enable the corresponding jobs. Repository-specific commands
-and filters are supplied with string inputs such as
-`clang_tidy_configure_command`, `clang_tidy_generate_command`,
-`clang_tidy_file_regex`, and `clang_format_paths`.
+The workflow documents each supported input alongside its default.
+`clang_tidy_file_regex` is required because source layouts and exclusions are
+consumer-specific. Other repository-specific commands and filters are supplied
+with inputs such as `clang_tidy_configure_command`,
+`clang_tidy_generate_command`, and `clang_format_paths`.

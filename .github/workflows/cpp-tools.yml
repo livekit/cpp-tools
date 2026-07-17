@@ -4,24 +4,35 @@ on:
   workflow_call:
     inputs:
       clang_format:
+        description: Run the clang-format job.
         type: boolean
         default: true
       clang_tidy:
+        description: Run the clang-tidy job.
         type: boolean
         default: true
       checkout_submodules:
+        description: Submodule checkout mode passed to actions/checkout.
         type: string
         default: recursive
       clang_format_version:
+        description: LLVM clang-format major version to install.
         type: string
         default: "22"
       clang_format_paths:
+        description: Space-separated repository paths checked by clang-format.
         type: string
         default: "src include benchmarks"
       clang_tidy_version:
+        description: LLVM clang-tidy major version to install.
         type: string
         default: "19"
+      clang_tidy_fail_on_warning:
+        description: Fail the clang-tidy job when warnings are emitted.
+        type: boolean
+        default: true
       clang_tidy_dependencies_command:
+        description: Shell command that installs project dependencies for clang-tidy.
         type: string
         default: |
           sudo apt-get update
@@ -30,30 +41,39 @@ on:
             llvm-dev libclang-dev clang \
             libssl-dev wget ca-certificates gnupg
       clang_tidy_install_rust:
+        description: Install the stable Rust toolchain before configuring the project.
         type: boolean
         default: false
       clang_tidy_setup_command:
+        description: Optional shell command that prepares the clang-tidy environment.
         type: string
         default: ""
       clang_tidy_configure_command:
+        description: Shell command that configures the compilation database build.
         type: string
         default: ""
       clang_tidy_generate_command:
+        description: Optional shell command that generates required source files.
         type: string
         default: ""
       clang_tidy_build_dir:
+        description: Directory containing compile_commands.json.
         type: string
         default: build-release
       clang_tidy_file_regex:
+        description: Regular expression selecting source files for run-clang-tidy.
         type: string
-        default: '^(?!.*/(_deps|build-[^/]*|vcpkg_installed|docker|docs|data)/).*/src/(?!tests/).*\.(c|cpp|cc|cxx)$'
+        required: true
       clang_tidy_header_filter:
+        description: Optional clang-tidy header filter regular expression.
         type: string
         default: ""
       clang_tidy_exclude_header_filter:
+        description: Optional clang-tidy excluded-header filter regular expression.
         type: string
         default: ""
       clang_tidy_require_generated_protobuf:
+        description: Optional directory that must contain generated protobuf headers.
         type: string
         default: ""
 permissions:
@@ -188,14 +208,17 @@ jobs:
           CLANG_TIDY_HEADER_FILTER: ${{ inputs.clang_tidy_header_filter }}
           CLANG_TIDY_EXCLUDE_HEADER_FILTER: ${{ inputs.clang_tidy_exclude_header_filter }}
           CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF: ${{ inputs.clang_tidy_require_generated_protobuf }}
+          CLANG_TIDY_FAIL_ON_WARNING: ${{ inputs.clang_tidy_fail_on_warning }}
         run: |
           set -euo pipefail
           args=(
             --repo-root "$GITHUB_WORKSPACE"
             --build-dir "${CLANG_TIDY_BUILD_DIR}"
             --file-regex "${CLANG_TIDY_FILE_REGEX}"
-            --fail-on-warning
           )
+          if [[ "${CLANG_TIDY_FAIL_ON_WARNING}" == "true" ]]; then
+            args+=(--fail-on-warning)
+          fi
           if [[ -n "${CLANG_TIDY_HEADER_FILTER}" ]]; then
             args+=(--header-filter "${CLANG_TIDY_HEADER_FILTER}")
           fi
