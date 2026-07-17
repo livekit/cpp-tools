@@ -1,5 +1,6 @@
 Checks: >
   -*,
+  clang-analyzer-*,
   bugprone-*,
   misc-const-correctness,
   performance-*,

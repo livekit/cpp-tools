@@ -18,6 +18,7 @@ for all available checks.
 
 | Check | Reasoning |
 | --- | --- |
+| `clang-analyzer-*` | Enables Clang static analyzer checks for issues such as null dereferences, memory leaks, and dead stores. |
 | `bugprone-*` | Catches common C++ bugs: use-after-move, dangling references, implicit conversions, incorrect loop logic, etc. |
 | `performance-*` | Flags unnecessary copies, inefficient container operations, and missed move opportunities. |
 | `modernize-*` | Encourages modern C++17 idioms: `auto`, range-for, `override`, `nullptr`, smart pointers. |
@@ -34,9 +35,8 @@ for all available checks.
 | `-readability-braces-around-statements` | Style preference (enforces `{ }` around statements. Arguably a good thing but open to debate. |
 | `-modernize-use-trailing-return-type` | Would rewrite every function to `auto foo() -> int` style. Opinionated. |
 | `-modernize-avoid-c-arrays` | C-style arrays are sometimes necessary for FFI boundaries (interfacing with the Rust bridge and C APIs like `livekit_ffi`). Flagging them all would create false positives at interop boundaries. |
-| `-modernize-use-auto` | Doesn’t add much value. |
+| `-modernize-use-auto` | Flags every case that could use `auto`. This is opinionated and does not add enough value to justify the resulting noise. |
 | `-modernize-use-nodiscard` | Adding `[[nodiscard]]` everywhere is noisy and better done intentionally by the developer on APIs where ignoring the return value is genuinely a bug. Not clear but may be a breaking API change for downstream users that are discarding return results today. |
-| `-modernize-use-auto` | Flags every case that could use `auto` that doesn’t. Opinionated/low value. |
 | `-bugprone-easily-swappable-parameters` | Fires on any function with consecutive parameters of the same type (e.g., `(int width, int height)`). Extremely noisy for a codebase with many similarly-typed parameters in media/audio APIs. |
 | `-performance-enum-size` | Fairly noisy and low impact performance-wise. Possibly good to turn on in the future. |
 | `-modernize-return-braced-init-list` | Decided against it during review. |
@@ -80,5 +80,4 @@ These options control tool-wide behavior or individual checks.
 
 | Setting | Reasoning |
 | --- | --- |
-| `HeaderFilterRegex` | Only lint headers owned by this project (`include/livekit`, `src`, `bridge`, `examples`). Avoids flagging third-party/system headers. |
 | `modernize-use-nullptr.NullMacros: NULL` | Tells the nullptr modernizer to also replace `NULL` macros (common in C-interop code from the FFI bridge). |
