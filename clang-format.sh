@@ -179,7 +179,7 @@ emit_annotations() {
     lineno="${BASH_REMATCH[2]}"
     col="${BASH_REMATCH[3]}"
     message="${BASH_REMATCH[5]}"
-    rel_path="${path#${workspace}/}"
+    rel_path="${path#"${workspace}"/}"
     message="${message//$'%'/%25}"
     message="${message//$'\r'/%0D}"
     message="${message//$'\n'/%0A}"

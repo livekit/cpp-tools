@@ -210,7 +210,7 @@ emit_annotations() {
     message="${BASH_REMATCH[5]}"
     check="${BASH_REMATCH[6]}"
     check="${check%,-warnings-as-errors}"
-    rel_path="${path#${workspace}/}"
+    rel_path="${path#"${workspace}"/}"
     message="${message//$'%'/%25}"
     message="${message//$'\r'/%0D}"
     message="${message//$'\n'/%0A}"
@@ -225,13 +225,13 @@ check_link() {
   local rest="${name#*-}"
   case "${name}" in
     clang-diagnostic-*)
-      printf '`%s`' "${name}"
+      printf "\`%s\`" "${name}"
       ;;
     clang-analyzer-*)
-      printf '[`%s`](https://clang.llvm.org/docs/analyzer/checkers.html)' "${name}"
+      printf "[\`%s\`](https://clang.llvm.org/docs/analyzer/checkers.html)" "${name}"
       ;;
     *)
-      printf '[`%s`](https://clang.llvm.org/extra/clang-tidy/checks/%s/%s.html)' \
+      printf "[\`%s\`](https://clang.llvm.org/extra/clang-tidy/checks/%s/%s.html)" \
         "${name}" "${module}" "${rest}"
       ;;
   esac
