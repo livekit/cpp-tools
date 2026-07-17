@@ -94,6 +94,14 @@ repository has an `AGENTS.md` with conflicting rules they should take priority.
 - Keep third-party implementation details out of public headers and ABI
   boundaries.
 
+## Style
+
+- Add the LiveKit copyright header with the correct year to new code files.
+- Prefer the constructor initializer list rather than variable declaration
+  and assignment in the constructor body.
+- For Doxygen/doc comments, prefer `///` comment style and use @brief,
+  @param, @return, @throw, @ref, @note, @warning as applicable.
+
 ## Project-Owned clangd Configuration
 
 - Each consuming project must provide its own `.clangd`; compilation database
