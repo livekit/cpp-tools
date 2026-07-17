@@ -105,6 +105,9 @@ files.
 
 ## clang-tidy
 
+See [docs/clang-tidy.md](docs/clang-tidy.md) for the enabled checks,
+exclusions, and the reasoning behind them.
+
 The consuming repository must generate `compile_commands.json` before running
 `clang-tidy.sh`. Project-specific behavior is configured with command-line
 flags or their corresponding environment variables:
@@ -143,5 +146,5 @@ and project-specific build preparation, then call their project wrappers:
 ```
 
 `FORMAT_BLOB_SHA` and `TIDY_BLOB_SHA` make source links target the pull
-request's head commit. The scripts fall back to `GITHUB_SHA` when these values
-are not supplied.
+request's head commit such that links to violating files render correctly.
+The scripts fall back to `GITHUB_SHA` when these values are not supplied.
