@@ -3,7 +3,7 @@
 Standardized tools for LiveKit C++ projects. This repository provides:
 
 - [clang-format](https://clang.llvm.org/docs/ClangFormat.html): Code styling consistency across projects
-- [clang-tidy](https://clang.llvm.org/extra/clang-tidy/): Static analysis and bug catching
+- [clang-tidy](https://clang.llvm.org/extra/clang-tidy/): Standardized static analysis and bug catching checks. See [docs/clang-tidy.md](./docs/clang-tidy.md)
 - Base [AGENTS.md](./AGENTS.md) with C++ best practices
 - Helper scripts and GitHub actions reporting support
 
@@ -41,6 +41,8 @@ Run the tools from the repository root:
 ./cpp-tools/clang-tidy.sh --file-regex '.*\.(c|cpp|cc|cxx)$' --fail-on-warning
 ```
 
+> Note: It's recommended to wrap these tool scripts in consuming repository scripts such that arguments and options can be passed in and re-used in CI. See below section for examples.
+
 Update existing `AGENTS.md` file to reference this one:
 
 ```markdown
@@ -49,33 +51,6 @@ Follow `cpp-tools/AGENTS.md` for shared LiveKit C++ engineering guidance.
 Instructions in this file are project-specific and take precedence if they
 conflict with the shared baseline.
 ```
-
-## Tool wrappers
-
-Consumer repositories should provide thin project-owned entrypoints such as
-`scripts/clang-format.sh` and `scripts/clang-tidy.sh`. The wrappers encode the
-repository's paths, filters, and build directory, then `exec` the shared script.
-This gives developers a zero-argument command without copying the formatting,
-diagnostic, or GitHub summary implementation.
-
-For example:
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-export CLANG_FORMAT_FIX_COMMAND="./scripts/clang-format.sh --fix"
-exec "${repo_root}/cpp-tools/clang-format.sh" \
-  --repo-root "${repo_root}" \
-  --path src \
-  --path include \
-  "$@"
-```
-
-Repository-owned CI workflows should invoke the same project entrypoints so
-local and CI file selection cannot drift. Repositories that do not use wrappers
-can call the shared scripts with explicit arguments.
 
 ## clang-format
 
@@ -111,10 +86,34 @@ Additional `run-clang-tidy` arguments can be passed after `--`.
 
 ## Pre-commit hook
 
-The hook is not installed by default. `install.sh precommit-hook` explicitly
-installs `.git/hooks/pre-commit`. The hook formats staged C and C++ files and
-re-stages files rewritten by `clang-format`. Re-run the installer after cloning
-a fresh checkout.
+The hook formats staged C++ files and re-stages files rewritten by `clang-format`.
+
+## Tool wrappers
+
+Consuming repositories should provide thin project-owned entrypoints such as
+`scripts/clang-format.sh` and `scripts/clang-tidy.sh`. The wrappers encode the
+repository's paths, filters, and build directory, then `exec` the shared script.
+This gives developers a zero-argument command without copying the formatting,
+diagnostic, or GitHub summary implementation.
+
+For example:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+export CLANG_FORMAT_FIX_COMMAND="./scripts/clang-format.sh --fix"
+exec "${repo_root}/cpp-tools/clang-format.sh" \
+  --repo-root "${repo_root}" \
+  --path src \
+  --path include \
+  "$@"
+```
+
+Repository-owned CI workflows should invoke the same project entrypoints so
+local and CI file selection cannot drift. Repositories that do not use wrappers
+can call the shared scripts with explicit arguments.
 
 ## GitHub Actions
 
