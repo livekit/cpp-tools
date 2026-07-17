@@ -37,12 +37,12 @@ Run the tools from the repository root:
 
 ```bash
 # Check formatting or rewrite files in place.
-./cpp-tools/clang-format.sh
-./cpp-tools/clang-format.sh --fix
+./cpp-tools/clang-format.sh --path path/to/sources
+./cpp-tools/clang-format.sh --path path/to/sources --fix
 
 # Run static analysis after generating compile_commands.json.
-./cpp-tools/clang-tidy.sh
-./cpp-tools/clang-tidy.sh --fail-on-warning
+./cpp-tools/clang-tidy.sh --file-regex '.*\.(c|cpp|cc|cxx)$'
+./cpp-tools/clang-tidy.sh --file-regex '.*\.(c|cpp|cc|cxx)$' --fail-on-warning
 ```
 
 ## What this repository provides
@@ -62,16 +62,42 @@ project-specific paths/build filters to the shared scripts.
 Their root `AGENTS.md` should reference `cpp-tools/AGENTS.md` as the shared C++
 baseline and add only repository-specific architecture and workflow guidance.
 
+## Consumer wrappers
+
+Consumer repositories should provide thin project-owned entrypoints such as
+`scripts/clang-format.sh` and `scripts/clang-tidy.sh`. The wrappers encode the
+repository's paths, filters, and build directory, then `exec` the shared script.
+This gives developers a zero-argument command without copying the formatting,
+diagnostic, or GitHub summary implementation.
+
+For example:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+export CLANG_FORMAT_FIX_COMMAND="./scripts/clang-format.sh --fix"
+exec "${repo_root}/cpp-tools/clang-format.sh" \
+  --repo-root "${repo_root}" \
+  --path src \
+  --path include \
+  "$@"
+```
+
+The shared workflow can invoke the same entrypoints through
+`clang_format_runner` and `clang_tidy_runner`. Direct script arguments and
+workflow inputs remain available for repositories that do not use wrappers.
+
 ## clang-format
 
-By default, `clang-format.sh` checks tracked C and C++ files in existing
-`src/`, `include/`, and `benchmarks/` trees. Repositories with different
-layouts can pass `--path` repeatedly:
+Each consumer supplies the tracked paths that `clang-format.sh` should check.
+Pass `--path` repeatedly for repositories with multiple source trees:
 
 ```bash
 ./cpp-tools/clang-format.sh \
-  --path src/first_package \
-  --path src/second_package
+  --path path/to/sources \
+  --path path/to/headers
 ```
 
 The `CLANG_FORMAT_PATHS` environment variable provides the same configuration
@@ -87,14 +113,10 @@ flags or their corresponding environment variables:
 ```bash
 ./cpp-tools/clang-tidy.sh \
   --build-dir build-release \
-  --file-regex '.*src/.*\.(c|cpp|cc|cxx)$' \
-  --header-filter '.*/(include|src)/.*\.(h|hpp)$' \
-  --exclude-header-filter '(.*/tests/.*)|(.*/build-[^/]*/.*)'
+  --file-regex '.*\.(c|cpp|cc|cxx)$'
 ```
 
-Use `--require-generated-protobuf PATH` when generated protobuf headers must
-exist before analysis. Additional `run-clang-tidy` arguments can be passed
-after `--`.
+Additional `run-clang-tidy` arguments can be passed after `--`.
 
 ## Pre-commit hook
 
@@ -113,14 +135,14 @@ jobs:
     uses: livekit/cpp-tools/.github/workflows/cpp-tools.yml@main
     with:
       clang_format: true
+      clang_format_runner: scripts/clang-format.sh
       clang_tidy: true
       clang_tidy_fail_on_warning: true
-      clang_tidy_file_regex: '.*\.(c|cpp|cc|cxx)$'
+      clang_tidy_runner: scripts/clang-tidy.sh
 ```
 
 The workflow documents each supported input alongside its default.
-`clang_tidy_file_regex` is required when `clang_tidy` is enabled because source
-layouts and exclusions are consumer-specific. Format-only consumers do not
-need to set it. Other repository-specific commands and filters are supplied
-with inputs such as `clang_tidy_configure_command`,
-`clang_tidy_generate_command`, and `clang_format_paths`.
+Each enabled job requires either its consumer runner or its direct selection
+input (`clang_format_paths` or `clang_tidy_file_regex`). Other
+repository-specific setup is supplied with inputs such as
+`clang_tidy_configure_command` and `clang_tidy_generate_command`.

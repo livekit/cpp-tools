@@ -19,14 +19,22 @@ on:
         description: LLVM clang-format major version to install.
         type: string
         default: "22"
-      clang_format_paths:
-        description: Space-separated repository paths checked by clang-format.
+      clang_format_runner:
+        description: Optional executable consumer wrapper; when set, clang_format_paths is not required.
         type: string
-        default: "src include benchmarks"
+        default: ""
+      clang_format_paths:
+        description: Space-separated paths checked by clang-format; required when enabled without a runner.
+        type: string
+        default: ""
       clang_tidy_version:
         description: LLVM clang-tidy major version to install.
         type: string
         default: "19"
+      clang_tidy_runner:
+        description: Optional executable consumer wrapper; when set, clang_tidy_file_regex is not required.
+        type: string
+        default: ""
       clang_tidy_fail_on_warning:
         description: Fail the clang-tidy job when warnings are emitted.
         type: boolean
@@ -61,7 +69,7 @@ on:
         type: string
         default: build-release
       clang_tidy_file_regex:
-        description: Regular expression selecting source files for run-clang-tidy; required when clang_tidy is enabled.
+        description: Source-file regex for run-clang-tidy; required when enabled without a runner.
         type: string
         default: ""
       clang_tidy_header_filter:
@@ -70,10 +78,6 @@ on:
         default: ""
       clang_tidy_exclude_header_filter:
         description: Optional clang-tidy excluded-header filter regular expression.
-        type: string
-        default: ""
-      clang_tidy_require_generated_protobuf:
-        description: Optional directory that must contain generated protobuf headers.
         type: string
         default: ""
 permissions:
@@ -87,6 +91,16 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Validate clang-format inputs
+        env:
+          CLANG_FORMAT_RUNNER: ${{ inputs.clang_format_runner }}
+          CLANG_FORMAT_PATHS_INPUT: ${{ inputs.clang_format_paths }}
+        run: |
+          if [[ -z "${CLANG_FORMAT_RUNNER}" && -z "${CLANG_FORMAT_PATHS_INPUT}" ]]; then
+            echo "::error::clang_format_runner or clang_format_paths is required when clang_format is enabled."
+            exit 2
+          fi
+
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -116,16 +130,29 @@ jobs:
       - name: Run clang-format
         env:
           FORMAT_BLOB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CLANG_FORMAT_RUNNER: ${{ inputs.clang_format_runner }}
           CLANG_FORMAT_PATHS_INPUT: ${{ inputs.clang_format_paths }}
         run: |
           set -euo pipefail
-          args=()
-          for path in ${CLANG_FORMAT_PATHS_INPUT}; do
-            args+=(--path "${path}")
-          done
-          ./cpp-tools/clang-format.sh \
-            --repo-root "$GITHUB_WORKSPACE" \
-            "${args[@]}"
+          if [[ -n "${CLANG_FORMAT_RUNNER}" ]]; then
+            runner="${CLANG_FORMAT_RUNNER}"
+            if [[ "${runner}" != /* ]]; then
+              runner="${GITHUB_WORKSPACE}/${runner}"
+            fi
+            if [[ ! -x "${runner}" ]]; then
+              echo "::error::clang_format_runner is not executable: ${CLANG_FORMAT_RUNNER}"
+              exit 2
+            fi
+            "${runner}"
+          else
+            args=()
+            for path in ${CLANG_FORMAT_PATHS_INPUT}; do
+              args+=(--path "${path}")
+            done
+            ./cpp-tools/clang-format.sh \
+              --repo-root "$GITHUB_WORKSPACE" \
+              "${args[@]}"
+          fi
 
   clang-tidy:
     name: clang-tidy
@@ -136,10 +163,11 @@ jobs:
     steps:
       - name: Validate clang-tidy inputs
         env:
+          CLANG_TIDY_RUNNER: ${{ inputs.clang_tidy_runner }}
           CLANG_TIDY_FILE_REGEX: ${{ inputs.clang_tidy_file_regex }}
         run: |
-          if [[ -z "${CLANG_TIDY_FILE_REGEX}" ]]; then
-            echo "::error::clang_tidy_file_regex is required when clang_tidy is enabled."
+          if [[ -z "${CLANG_TIDY_RUNNER}" && -z "${CLANG_TIDY_FILE_REGEX}" ]]; then
+            echo "::error::clang_tidy_runner or clang_tidy_file_regex is required when clang_tidy is enabled."
             exit 2
           fi
 
@@ -212,29 +240,40 @@ jobs:
       - name: Run clang-tidy
         env:
           TIDY_BLOB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CLANG_TIDY_RUNNER: ${{ inputs.clang_tidy_runner }}
           CLANG_TIDY_BUILD_DIR: ${{ inputs.clang_tidy_build_dir }}
           CLANG_TIDY_FILE_REGEX: ${{ inputs.clang_tidy_file_regex }}
           CLANG_TIDY_HEADER_FILTER: ${{ inputs.clang_tidy_header_filter }}
           CLANG_TIDY_EXCLUDE_HEADER_FILTER: ${{ inputs.clang_tidy_exclude_header_filter }}
-          CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF: ${{ inputs.clang_tidy_require_generated_protobuf }}
           CLANG_TIDY_FAIL_ON_WARNING: ${{ inputs.clang_tidy_fail_on_warning }}
         run: |
           set -euo pipefail
-          args=(
-            --repo-root "$GITHUB_WORKSPACE"
-            --build-dir "${CLANG_TIDY_BUILD_DIR}"
-            --file-regex "${CLANG_TIDY_FILE_REGEX}"
-          )
+          args=()
           if [[ "${CLANG_TIDY_FAIL_ON_WARNING}" == "true" ]]; then
             args+=(--fail-on-warning)
           fi
-          if [[ -n "${CLANG_TIDY_HEADER_FILTER}" ]]; then
-            args+=(--header-filter "${CLANG_TIDY_HEADER_FILTER}")
+          if [[ -n "${CLANG_TIDY_RUNNER}" ]]; then
+            runner="${CLANG_TIDY_RUNNER}"
+            if [[ "${runner}" != /* ]]; then
+              runner="${GITHUB_WORKSPACE}/${runner}"
+            fi
+            if [[ ! -x "${runner}" ]]; then
+              echo "::error::clang_tidy_runner is not executable: ${CLANG_TIDY_RUNNER}"
+              exit 2
+            fi
+            "${runner}" "${args[@]}"
+          else
+            args=(
+              --repo-root "$GITHUB_WORKSPACE"
+              --build-dir "${CLANG_TIDY_BUILD_DIR}"
+              --file-regex "${CLANG_TIDY_FILE_REGEX}"
+              "${args[@]}"
+            )
+            if [[ -n "${CLANG_TIDY_HEADER_FILTER}" ]]; then
+              args+=(--header-filter "${CLANG_TIDY_HEADER_FILTER}")
+            fi
+            if [[ -n "${CLANG_TIDY_EXCLUDE_HEADER_FILTER}" ]]; then
+              args+=(--exclude-header-filter "${CLANG_TIDY_EXCLUDE_HEADER_FILTER}")
+            fi
+            ./cpp-tools/clang-tidy.sh "${args[@]}"
           fi
-          if [[ -n "${CLANG_TIDY_EXCLUDE_HEADER_FILTER}" ]]; then
-            args+=(--exclude-header-filter "${CLANG_TIDY_EXCLUDE_HEADER_FILTER}")
-          fi
-          if [[ -n "${CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF}" ]]; then
-            args+=(--require-generated-protobuf "${CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF}")
-          fi
-          ./cpp-tools/clang-tidy.sh "${args[@]}"

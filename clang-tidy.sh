@@ -33,15 +33,12 @@ Options:
         Build directory containing compile_commands.json. Default:
         CLANG_TIDY_BUILD_DIR or build-release.
   --file-regex REGEX
-        run-clang-tidy target regex used when FILE... is omitted. Default:
-        CLANG_TIDY_FILE_REGEX or all non-test src/*.c/cpp/cc/cxx files.
+        run-clang-tidy target regex used when FILE... is omitted. Required
+        unless CLANG_TIDY_FILE_REGEX is set.
   --header-filter REGEX
         Forwarded to run-clang-tidy as -header-filter.
   --exclude-header-filter REGEX
         Forwarded to run-clang-tidy as -exclude-header-filter.
-  --require-generated-protobuf PATH
-        Require PATH to contain *.pb.h before running. May be relative to
-        the repo root. Useful for protobuf-backed SDKs.
   --fix
         Apply fixes in place (forwarded to run-clang-tidy as -fix).
   --github-actions, --gh
@@ -51,19 +48,16 @@ Options:
 
 Environment:
   REPO_ROOT, CLANG_TIDY_BUILD_DIR, CLANG_TIDY_FILE_REGEX,
-  CLANG_TIDY_HEADER_FILTER, CLANG_TIDY_EXCLUDE_HEADER_FILTER,
-  CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF
+  CLANG_TIDY_HEADER_FILTER, CLANG_TIDY_EXCLUDE_HEADER_FILTER
         Environment equivalents for the matching options above.
 EOF
 }
 
 repo_root="${REPO_ROOT:-}"
 build_dir="${CLANG_TIDY_BUILD_DIR:-build-release}"
-default_file_regex='^(?!.*/(_deps|build-[^/]*|vcpkg_installed|docker|docs|data)/).*/src/(?!tests/).*\.(c|cpp|cc|cxx)$'
-file_regex="${CLANG_TIDY_FILE_REGEX:-${default_file_regex}}"
+file_regex="${CLANG_TIDY_FILE_REGEX:-}"
 header_filter="${CLANG_TIDY_HEADER_FILTER:-}"
 exclude_header_filter="${CLANG_TIDY_EXCLUDE_HEADER_FILTER:-}"
-required_proto_dir="${CLANG_TIDY_REQUIRE_GENERATED_PROTOBUF:-}"
 ci_mode=0
 fail_on_warning=0
 forward_args=()
@@ -119,14 +113,6 @@ while (($#)); do
       exclude_header_filter="$2"
       shift 2
       ;;
-    --require-generated-protobuf)
-      if (($# < 2)); then
-        echo "ERROR: --require-generated-protobuf requires a path." >&2
-        exit 2
-      fi
-      required_proto_dir="$2"
-      shift 2
-      ;;
     --fix)
       forward_args+=("-fix")
       shift
@@ -164,6 +150,11 @@ while (($#)); do
   esac
 done
 
+if (( ${#explicit_files[@]} == 0 )) && [[ -z "${file_regex}" ]]; then
+  echo "ERROR: provide --file-regex, FILE, or CLANG_TIDY_FILE_REGEX." >&2
+  exit 2
+fi
+
 if [[ -z "${repo_root}" ]]; then
   repo_root="$(git rev-parse --show-toplevel)"
 fi
@@ -174,14 +165,6 @@ if [[ ! -f "${build_dir}/compile_commands.json" ]]; then
   echo "ERROR: ${build_dir}/compile_commands.json not found." >&2
   echo "Run the consuming repository's release/configure build first." >&2
   exit 1
-fi
-
-if [[ -n "${required_proto_dir}" ]]; then
-  if [[ ! -d "${required_proto_dir}" ]] || ! compgen -G "${required_proto_dir}/*.pb.h" >/dev/null; then
-    echo "ERROR: no generated protobuf headers found in ${required_proto_dir}/." >&2
-    echo "Run the consuming repository's protobuf/header generation step first." >&2
-    exit 1
-  fi
 fi
 
 if ! command -v run-clang-tidy >/dev/null 2>&1; then

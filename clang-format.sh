@@ -31,7 +31,7 @@ Options:
         `git rev-parse --show-toplevel` from the current directory.
   --path PATH
         Tracked path or glob to scan when FILE... is omitted. May be repeated.
-        Defaults to existing src/, include/, and benchmarks/ trees.
+        Required unless FILE... or CLANG_FORMAT_PATHS is supplied.
   --fix, -i
         Apply formatting in place.
   --github-actions, --gh
@@ -42,6 +42,9 @@ Environment:
         Same as --repo-root.
   CLANG_FORMAT_PATHS
         Colon-separated list used when --path is not supplied.
+  CLANG_FORMAT_FIX_COMMAND
+        Local fix command shown in summaries. Defaults to a command matching
+        the paths or files supplied to this invocation.
 EOF
 }
 
@@ -119,21 +122,14 @@ clang-format --version
 if (( ${#paths[@]} == 0 )) && [[ -n "${CLANG_FORMAT_PATHS:-}" ]]; then
   IFS=':' read -r -a paths <<< "${CLANG_FORMAT_PATHS}"
 fi
-if (( ${#paths[@]} == 0 )); then
-  for candidate in src include benchmarks; do
-    if [[ -e "${candidate}" ]]; then
-      paths+=("${candidate}")
-    fi
-  done
-fi
 
 files=()
 if (( ${#explicit_files[@]} > 0 )); then
   files=("${explicit_files[@]}")
 else
   if (( ${#paths[@]} == 0 )); then
-    echo "clang-format: no paths to scan."
-    exit 0
+    echo "ERROR: provide at least one --path, FILE, or CLANG_FORMAT_PATHS value." >&2
+    exit 2
   fi
   while IFS= read -r -d '' path; do
     files+=("${path}")
@@ -150,6 +146,23 @@ file_count=${#files[@]}
 if (( file_count == 0 )); then
   echo "clang-format: no files to process."
   exit 0
+fi
+
+fix_command="${CLANG_FORMAT_FIX_COMMAND:-}"
+if [[ -z "${fix_command}" ]]; then
+  fix_command="./cpp-tools/clang-format.sh --fix"
+  fix_targets=()
+  if (( ${#explicit_files[@]} > 0 )); then
+    fix_targets=("${explicit_files[@]}")
+  else
+    for path in "${paths[@]}"; do
+      fix_targets+=(--path "${path}")
+    done
+  fi
+  for target in "${fix_targets[@]}"; do
+    printf -v quoted_target '%q' "${target}"
+    fix_command+=" ${quoted_target}"
+  done
 fi
 
 log="clang-format.log"
@@ -230,7 +243,7 @@ write_step_summary() {
       echo
       echo "</details>"
       echo
-      echo "Run \`./cpp-tools/clang-format.sh --fix\` locally to apply formatting."
+      echo "Run \`${fix_command}\` locally to apply formatting."
     fi
   } >> "${summary_file}"
 
@@ -268,7 +281,7 @@ print_stdout_summary() {
       printf '    %s\n' "${f}"
     done < "${files_tsv}"
     echo
-    echo "  Run './cpp-tools/clang-format.sh --fix' to apply formatting."
+    echo "  Run '${fix_command}' to apply formatting."
   fi
   echo "------------------------------------------------------------"
 
