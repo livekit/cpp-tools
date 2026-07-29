@@ -24,7 +24,7 @@ for all available checks.
 | `modernize-*` | Encourages modern C++17 idioms: `auto`, range-for, `override`, `nullptr`, smart pointers. |
 | `readability-misleading-indentation` | Catches indentation that suggests a different control flow than what actually executes. |
 | `readability-redundant-smartptr-get` | Flags `ptr.get()` calls where `*ptr` or `ptr->` would suffice – reduces noise and makes smart pointer usage idiomatic. |
-| `readability-identifier-naming` | Enforces consistent class and method naming conventions across LiveKit C++ projects. |
+| `readability-identifier-naming` | Enforces consistent class, method, and parameter naming conventions across LiveKit C++ projects. |
 | `misc-const-correctness` | Similar to Rust, ensures variables are immutable by default unless intended to be changed. |
 
 ## Excluded Checks
@@ -73,6 +73,7 @@ shared LiveKit C++ style.
 | `FormatStyle: file` | Uses the project’s `.clang-format` for any auto-fix formatting, keeping fixes consistent with the existing code style. |
 | `readability-identifier-naming.ClassCase: CamelCase` | Requires class names to use `CamelCase`. |
 | `readability-identifier-naming.MethodCase: camelBack` | Requires method names to use `camelBack`. |
+| `readability-identifier-naming.ParameterCase: lower_case` | Requires function and method parameters to use `snake_case` (e.g. `well_known`, `track_name`). Without this option, `readability-identifier-naming` ignores parameter names even though the check itself is enabled. |
 
 ## Other Settings
 

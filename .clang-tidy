@@ -41,3 +41,5 @@ CheckOptions:
     value: CamelCase
   - key: readability-identifier-naming.MethodCase
     value: camelBack
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
