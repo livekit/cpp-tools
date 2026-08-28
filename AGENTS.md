@@ -99,6 +99,8 @@ repository has an `AGENTS.md` with conflicting rules they should take priority.
 - Add the LiveKit copyright header with the correct year to new code files.
 - Prefer the constructor initializer list rather than variable declaration
   and assignment in the constructor body.
+- Use `#pragma once` for project-owned C++ headers. Do not introduce macro
+  include guards unless a specific portability constraint requires one.
 - Use `CamelCase` for types/classes, `camelBack` for methods, and
   `snake_case` for parameters (enforced by `readability-identifier-naming`).
 - For Doxygen/doc comments, prefer `///` comment style and use @brief,
